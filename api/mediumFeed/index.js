@@ -23,7 +23,7 @@ module.exports = async function(context, req) {
         }));
 
         // Push to Azure AI Search
-        const result = await searchClient.uploadDocuments(posts);
+        // const result = await searchClient.uploadDocuments(posts);
         context.log("Indexed posts:", result);
 
         context.res = {
