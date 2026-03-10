@@ -1,3 +1,4 @@
+const { SearchClient, AzureKeyCredential } = require("@azure/search-documents");
 const Parser = require("rss-parser");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const parser = new Parser();
