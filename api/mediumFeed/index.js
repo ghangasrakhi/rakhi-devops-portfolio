@@ -1,18 +1,30 @@
 const { SearchClient, AzureKeyCredential } = require("@azure/search-documents");
 const Parser = require("rss-parser");
 const parser = new Parser();
+
 const AZURE_SEARCH_KEY = process.env.AZURE_SEARCH_KEY;
+const SEARCH_ENDPOINT = "https://medium-chatsearch.search.windows.net";
+const INDEX_NAME = "medium-blogs";
 
-const searchEndpoint = "https://medium-chatsearch.search.windows.net";
-const indexName = "medium-blogs";
-const apiKey = AZURE_SEARCH_KEY;
+let searchClient;
+if (AZURE_SEARCH_KEY) {
+    searchClient = new SearchClient(
+        SEARCH_ENDPOINT,
+        INDEX_NAME,
+        new AzureKeyCredential(AZURE_SEARCH_KEY)
+    );
+} else {
+    console.warn("AZURE_SEARCH_KEY is missing!");
+}
 
-const searchClient = new SearchClient(searchEndpoint, indexName, new AzureKeyCredential(apiKey));
-
-module.exports = async function(context, req) {
+module.exports = async function (context, req) {
     const mediumRSS = "https://medium.com/feed/@ghangas-rakhi";
+
     try {
+        // Fetch Medium RSS feed
         const feed = await parser.parseURL(mediumRSS);
+        context.log("Feed items found:", feed.items.length);
+
         const posts = feed.items.slice(0, 6).map(item => ({
             id: item.guid || item.link,
             title: item.title,
@@ -22,19 +34,35 @@ module.exports = async function(context, req) {
             content: item.contentSnippet || ""
         }));
 
-        // Push to Azure AI Search
-        // const result = await searchClient.uploadDocuments(posts);
-        context.log("Indexed posts:", result);
+        context.log("Posts prepared:", posts.length);
 
+        // Try sending to Azure Search, but fail gracefully
+        if (searchClient) {
+            try {
+                const result = await searchClient.uploadDocuments(posts);
+                context.log("Azure Search upload result:", result);
+            } catch (searchError) {
+                context.log("Azure Search failed:", searchError.message);
+            }
+        } else {
+            context.log("Skipping Azure Search: key not set.");
+        }
+
+        // Always return posts to the front-end
         context.res = {
+            status: 200,
             headers: { "Content-Type": "application/json" },
             body: posts
         };
-    } catch(err) {
-        context.res = { status: 500, body: { error: "Failed to fetch Medium posts", details: err.message } };
+    } catch (err) {
+        context.log("Function error:", err);
+        context.res = {
+            status: 200, // Return 200 so the front-end still gets something
+            headers: { "Content-Type": "application/json" },
+            body: { error: "Failed to fetch Medium posts", details: err.message }
+        };
     }
 };
-
 
 // const Parser = require("rss-parser");
 // const parser = new Parser();
