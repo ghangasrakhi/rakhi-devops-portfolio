@@ -1,0 +1,102 @@
+/* Reset */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+/* Body & Fonts */
+body {
+  font-family: 'Poppins', sans-serif;
+  background:#0f172a;
+  color:white;
+  overflow-x:hidden;
+  scroll-behavior: smooth;
+}
+
+/* NAVBAR */
+nav {
+  position:fixed;
+  top:0;
+  width:100%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(12px);
+  padding: 15px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  z-index:1000;
+  transition: background 0.3s;
+}
+nav h3 { font-weight:700; font-size:1.5rem; letter-spacing:1px; }
+nav ul { display:flex; gap:30px; list-style:none; }
+nav a { color:white; text-decoration:none; font-weight:500; transition:0.3s; }
+nav a:hover { color:#00ff9d; transform:scale(1.1); }
+#modeToggle { background:none; border:none; font-size:20px; cursor:pointer; color:white; }
+
+/* HERO */
+.hero { height:100vh; display:flex; justify-content:center; align-items:center; padding-top:50px;}
+.terminal { background:#020617; padding:50px; border-radius:15px; box-shadow:0 25px 60px rgba(0,0,0,0.8); font-family:'JetBrains Mono', monospace; max-width:720px; }
+.green { color:#00ff9d; }
+
+/* HERO TYPING */
+.typewriter p { overflow:hidden; border-right:.15em solid #00ff9d; white-space:nowrap; margin:0 auto; letter-spacing:.15em; animation:typing 3s steps(40,end) 1s forwards, blink .75s step-end infinite; }
+@keyframes typing { from { width:0 } to { width:100% } }
+@keyframes blink { 50% { border-color:transparent; } }
+
+/* SECTIONS */
+section { padding:100px 10%; }
+h2 { text-align:center; font-size:38px; margin-bottom:50px; color:#00ff9d; text-shadow:0 0 10px rgba(0,255,157,0.7); }
+
+/* TECH GRID */
+.tech-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:25px; }
+.tech {
+  background:#1e293b;
+  padding:25px;
+  border-radius:15px;
+  text-align:center;
+  font-weight:600;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(0,0,0,0.5);
+  transition:0.4s;
+}
+.tech:hover { transform:translateY(-8px); background: linear-gradient(135deg,#00ffd5,#00bfff); box-shadow:0 15px 25px rgba(0,255,213,0.4); }
+.skill-bar { height:8px; background:#00ffd5; border-radius:5px; margin-top:10px; width:0%; transition:1s; }
+
+/* PROJECTS */
+.projects { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:30px; }
+.card { perspective:1000px; cursor:pointer; }
+.card-inner {
+  position:relative; width:100%; height:220px; text-align:center; transition:transform 0.6s; transform-style:preserve-3d;
+}
+.card:hover .card-inner { transform:rotateY(180deg); }
+.card-front, .card-back {
+  position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; justify-content:center; align-items:center; padding:25px; border-radius:15px;
+}
+.card-front { background:#334155; color:white; font-weight:600; font-size:1.2rem; box-shadow:0 10px 20px rgba(0,0,0,0.5); }
+.card-back { background:#0f172a; transform:rotateY(180deg); color:#00ffd5; flex-direction:column; font-weight:500; }
+.card-back a { margin-top:10px; color:#00ffd5; text-decoration:none; font-weight:600; }
+
+/* BLOG */
+.blog-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:30px; margin-top:40px; }
+.blog-card { background:#1e293b; border-radius:15px; overflow:hidden; box-shadow:0 10px 20px rgba(0,0,0,0.6); transition:0.3s; }
+.blog-card:hover { transform:translateY(-10px); box-shadow:0 15px 30px rgba(0,255,213,0.5); }
+.blog-card img { width:100%; height:180px; object-fit:cover; transition:0.3s; }
+.blog-card:hover img { transform:scale(1.05); }
+.blog-content { padding:20px; }
+.blog-content h3 { margin-bottom:10px; color:#00ffd5; }
+.blog-content a { text-decoration:none; color:#00ffd5; font-weight:600; }
+
+/* GITHUB */
+.github { text-align:center; padding:60px 10%; }
+
+/* FOOTER */
+footer { text-align:center; padding:40px; background:#020617; }
+
+/* MATRIX BACKGROUND */
+canvas { position:fixed; top:0; left:0; z-index:-1; }
+
+/* LIGHT MODE */
+.light { background:white; color:#0f172a; }
+.light nav { background: rgba(255,255,255,0.7); }
+.light .card-front, .light .card-back, .light .blog-card, .light .tech { background:#f3f4f6; color:#0f172a; }
+.light .skill-bar { background:#0f172a; }
+
