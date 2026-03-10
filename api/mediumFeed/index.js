@@ -2,6 +2,7 @@ const { SearchClient, AzureKeyCredential } = require("@azure/search-documents");
 const Parser = require("rss-parser");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const parser = new Parser();
+const AZURE_SEARCH_KEY = process.env.AZURE_SEARCH_KEY;
 
 // Connect to your storage account
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
