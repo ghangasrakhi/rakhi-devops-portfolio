@@ -39,7 +39,8 @@ module.exports = async function (context, req) {
                             semantic_configuration: "default",
                             fields_mapping: {
                                 content_columns: ["chunk"],
-                                title_field: "title"
+                                title_field: "title",
+                                url_field: "link"
                             },
                             in_scope: true,
                             role_information: "You are a professional assistant representing a DevOps engineer."
