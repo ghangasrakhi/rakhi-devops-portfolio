@@ -1,48 +1,62 @@
-const axios = require('axios');
+const axios = require("axios");
 
 module.exports = async function (context, req) {
+    // 1. Map environment variables (Ensure these are in SWA Configuration!)
+    const apiKey = process.env.AZURE_OPENAI_KEY;
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT; // e.g. https://your-resource.openai.azure.com
+    const deploymentId = "gpt-35-turbo"; // Update this to your specific deployment name
+    
+    const searchEndpoint = process.env.AZURE_SEARCH_ENDPOINT; // https://rakhi-portfolio-search-basic.search.windows.net
+    const searchKey = process.env.AZURE_SEARCH_KEY;
+    const searchIndex = "rag-1773919700779"; 
+
     const userQuery = req.body ? req.body.query : null;
 
     if (!userQuery) {
-        context.res = {
-            status: 400,
-            body: "Please send a query in the request body."
-        };
+        context.res = { status: 400, body: "Ask me anything about my DevOps journey!" };
         return;
     }
 
     try {
         const response = await axios.post(
-            `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-4o/extensions/chat/completions?api-version=2023-06-01-preview`,
+            `${endpoint}/openai/deployments/${deploymentId}/chat/completions?api-version=2024-02-15-preview`,
             {
-                dataSources: [
+                messages: [
+                    { role: "system", content: "You are an AI assistant for Rakhi's DevOps portfolio. Answer questions based on her Medium blogs and experience." },
+                    { role: "user", content: userQuery }
+                ],
+                data_sources: [
                     {
-                        type: "AzureCognitiveSearch",
+                        type: "azure_search",
                         parameters: {
-                            endpoint: process.env.AZURE_SEARCH_ENDPOINT,
-                            key: process.env.AZURE_SEARCH_KEY,
-                            indexName: "rag-1773919700779" // index 
+                            endpoint: searchEndpoint,
+                            index_name: searchIndex,
+                            authentication: {
+                                type: "api_key",
+                                key: searchKey
+                            },
+                            query_type: "semantic",
+                            semantic_configuration: "default",
+                            in_scope: true,
+                            role_information: "You are a professional assistant representing a DevOps engineer."
                         }
                     }
-                ],
-                messages: [
-                    { role: "system", content: "You are Rakhi's AI Assistant. You help recruiters understand her DevOps skills in Azure and Kubernetes." },
-                    { role: "user", content: userQuery }
                 ]
             },
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': process.env.AZURE_OPENAI_KEY
-                }
+                headers: { "api-key": apiKey, "Content-Type": "application/json" }
             }
         );
 
         context.res = {
-            body: { reply: response.data.choices[0].messages[1].content }
+            status: 200,
+            body: { reply: response.data.choices[0].message.content }
         };
     } catch (error) {
-        context.log.error(error);
-        context.res = { status: 500, body: "Cloud brain sync error." };
+        context.log.error("RAG Chat Error:", error.response ? error.response.data : error.message);
+        context.res = {
+            status: 500,
+            body: "The AI is currently processing the search index. Please try again in a minute."
+        };
     }
 };
