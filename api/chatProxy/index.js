@@ -1,12 +1,11 @@
 const axios = require("axios");
 
 module.exports = async function (context, req) {
-    // 1. Map environment variables (Ensure these are in SWA Configuration!)
     const apiKey = process.env.AZURE_OPENAI_KEY;
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT; // e.g. https://your-resource.openai.azure.com
-    const deploymentId = "gpt-4o"; // Update this to your specific deployment name
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+    const deploymentId = "gpt-4o";
     
-    const searchEndpoint = process.env.AZURE_SEARCH_ENDPOINT; // https://rakhi-portfolio-search-basic.search.windows.net
+    const searchEndpoint = process.env.AZURE_SEARCH_ENDPOINT;
     const searchKey = process.env.AZURE_SEARCH_KEY;
     const searchIndex = "rag-1773919700779"; 
 
@@ -35,15 +34,21 @@ module.exports = async function (context, req) {
                                 type: "api_key",
                                 key: searchKey
                             },
-                            query_type: "semantic",
+                            query_type: "vector_semantic", // Upgraded to Hybrid Search
                             semantic_configuration: "default",
                             fields_mapping: {
                                 content_columns: ["chunk"],
                                 title_field: "title",
                                 url_field: "link"
                             },
+                            // CRITICAL ADDITION:
+                            embedding_dependency: {
+                                type: "deployment_name",
+                                deployment_name: "text-embedding-3-small" 
+                            },
+                            strictness: 2, // Less restrictive to ensure an answer is found
                             in_scope: true,
-                            role_information: "You are a professional assistant representing a DevOps engineer."
+                            role_information: "You are a professional assistant representing a DevOps engineer named Rakhi."
                         }
                     }
                 ]
@@ -58,10 +63,11 @@ module.exports = async function (context, req) {
             body: { reply: response.data.choices[0].message.content }
         };
     } catch (error) {
-        context.log.error("RAG Chat Error:", error.response ? error.response.data : error.message);
+        // Detailed logging for debugging
+        context.log.error("RAG Chat Error Detail:", JSON.stringify(error.response ? error.response.data : error.message));
         context.res = {
             status: 500,
-            body: "The AI is currently processing the search index. Please try again in a minute."
+            body: "The AI is refining its search. Please try again in a moment."
         };
     }
 };
