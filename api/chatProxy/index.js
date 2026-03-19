@@ -4,7 +4,7 @@ module.exports = async function (context, req) {
     // 1. Map environment variables (Ensure these are in SWA Configuration!)
     const apiKey = process.env.AZURE_OPENAI_KEY;
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT; // e.g. https://your-resource.openai.azure.com
-    const deploymentId = "gpt-35-turbo"; // Update this to your specific deployment name
+    const deploymentId = "gpt-4o"; // Update this to your specific deployment name
     
     const searchEndpoint = process.env.AZURE_SEARCH_ENDPOINT; // https://rakhi-portfolio-search-basic.search.windows.net
     const searchKey = process.env.AZURE_SEARCH_KEY;
