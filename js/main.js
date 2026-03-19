@@ -12,7 +12,7 @@ for(let x=0;x<columns;x++) drops[x]=1;
 function draw(){
   ctx.fillStyle="rgba(0,0,0,0.05)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#00ff9d";
+  ctx.fillStyle="#0078d4";
   ctx.font=fontSize+"px monospace";
   for(let i=0;i<drops.length;i++){
     const text=matrix[Math.floor(Math.random()*matrix.length)];
@@ -90,3 +90,58 @@ fetch('/api/mediumFeed')
     console.error(err)
     blogContainer.innerHTML='<p style="color:#00ffd5;text-align:center;">Unable to load blogs at this time.</p>'
   })
+
+
+
+const chatToggle = document.getElementById("chat-toggle");
+const chatbot = document.getElementById("chatbot");
+const chatBody = document.getElementById("chat-body");
+
+chatToggle.onclick = () => {
+chatbot.style.display = chatbot.style.display === "flex" ? "none" : "flex";
+chatbot.style.flexDirection = "column";
+};
+
+// Add "Enter" key support
+document.getElementById("chat-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+});
+
+async function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const chatBody = document.getElementById("chat-body");
+    const text = input.value.trim();
+
+    if (text === "") return;
+
+    // 1. Show User Message
+    chatBody.innerHTML += `<div class="user">${text}</div>`;
+    input.value = "";
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    // 2. Add a "Thinking..." bubble
+    const botDiv = document.createElement("div");
+    botDiv.className = "bot";
+    botDiv.innerText = "Thinking...";
+    chatBody.appendChild(botDiv);
+
+    try {
+        // CALL YOUR AZURE FUNCTION PROXY
+        const response = await fetch("/api/chatProxy", { 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: text })
+        });
+
+        const data = await response.json();
+        
+        // 3. Display AI Response
+        botDiv.innerText = data.reply || "I'm having trouble reaching the cloud.";
+
+    } catch (error) {
+        botDiv.innerText = "Connection lost. My DevOps heart is broken.";
+        console.error("Chat Error:", error);
+    }
+
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
