@@ -1,7 +1,9 @@
 {
-  "name": "medium-api",
+  "name": "rakhi-portfolio-api",
   "version": "1.0.0",
+  "description": "API for Medium blogs and AI Chatbot",
   "dependencies": {
+    "axios": "^1.6.0",
     "rss-parser": "^3.12.0"
   }
 }

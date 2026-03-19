@@ -1,21 +1,38 @@
-const ChatbotWidget = {
-  init: function (config) {
-    const btn = document.createElement("button");
-    btn.innerText = "Chat";
-    btn.style.position = "fixed";
-    btn.style.bottom = "20px";
-    btn.style.right = "20px";
-    btn.style.zIndex = "10000";
-    btn.style.padding = "10px 15px";
-    btn.style.background = "#00ffd5";
-    btn.style.color = "#0f172a";
-    btn.style.border = "none";
-    btn.style.borderRadius = "8px";
-    btn.style.cursor = "pointer";
-    document.body.appendChild(btn);
+const chatToggle = document.getElementById("chat-toggle");
+const chatbot = document.getElementById("chatbot");
+const chatBody = document.getElementById("chat-body");
 
-    btn.onclick = function () {
-      alert("Chatbot API not implemented yet! URL: " + config.apiUrl);
-    };
-  },
+chatToggle.onclick = () => {
+chatbot.style.display = chatbot.style.display === "flex" ? "none" : "flex";
+chatbot.style.flexDirection = "column";
 };
+
+function sendMessage(){
+
+const input = document.getElementById("chat-input");
+const text = input.value;
+
+if(text === "") return;
+
+chatBody.innerHTML += `<div class="user">${text}</div>`;
+
+let reply = "I can tell you about Rakhi's DevOps skills.";
+
+if(text.toLowerCase().includes("skills"))
+reply = "Rakhi works with Azure, Kubernetes, Terraform, Docker, CI/CD.";
+
+else if(text.toLowerCase().includes("projects"))
+reply = "Check the Projects section for Kubernetes and Terraform deployments.";
+
+else if(text.toLowerCase().includes("contact"))
+reply = "You can reach Rakhi via GitHub.";
+
+else if(text.toLowerCase().includes("hello"))
+reply = "Hello 👋 I'm Rakhi's DevOps assistant.";
+
+chatBody.innerHTML += `<div class="bot">${reply}</div>`;
+
+chatBody.scrollTop = chatBody.scrollHeight;
+
+input.value="";
+}
