@@ -61,7 +61,7 @@ module.exports = async function (context, req) {
                             },
                             strictness: 1, // Less restrictive to ensure an answer is found
                             in_scope: true,
-                            top_n_documents: 3,
+                            top_n_documents: 5,
                             role_information: "You are a professional assistant representing a DevOps engineer named Rakhi."
                         }
                     }
