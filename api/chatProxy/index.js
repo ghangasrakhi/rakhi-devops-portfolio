@@ -28,7 +28,7 @@ module.exports = async function (context, req) {
 
     try {
         const response = await axios.post(
-            `${endpoint}/openai/deployments/${deploymentId}/chat/completions?api-version=2024-02-01`,
+            `${endpoint}/openai/deployments/${deploymentId}/chat/completions?api-version=2024-02-15-preview`,
             {
                 messages: [
                     { role: "system", content: "You are an AI assistant for Rakhi's DevOps portfolio. Answer questions based on her Medium blogs and experience." },
@@ -59,7 +59,7 @@ module.exports = async function (context, req) {
                                 type: "deployment_name",
                                 deployment_name: "text-embedding-3-small" 
                             },
-                            strictness: 2, // Less restrictive to ensure an answer is found
+                            strictness: 1, // Less restrictive to ensure an answer is found
                             in_scope: true,
                             top_n_documents: 3,
                             role_information: "You are a professional assistant representing a DevOps engineer named Rakhi."
