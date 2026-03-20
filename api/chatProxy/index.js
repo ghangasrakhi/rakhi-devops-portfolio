@@ -77,11 +77,13 @@ module.exports = async function (context, req) {
             body: { reply: response.data.choices[0].message.content }
         };
     } catch (error) {
-        // Detailed logging for debugging
-        context.log.error("RAG Chat Error Detail:", JSON.stringify(error.response ? error.response.data : error.message));
-        context.res = {
-            status: 500,
-            body: "The AI is refining its search. Please try again in a moment."
-        };
+    // This will tell you if the Key is wrong or if the Deployment is missing
+    const azureError = error.response?.data?.error?.message || error.message;
+    context.log.error("Detailed Error:", azureError);
+    
+    context.res = {
+        status: 500,
+        body: { reply: `RAG Error: ${azureError}` } 
+    };
     }
 };
