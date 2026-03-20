@@ -66,7 +66,7 @@ module.exports = async function (context, req) {
                 ]
             },
             {
-                headers: { "api-key": apiKey, "Content-Type": "application/json" }
+                headers: { "api-key": apiKey, "chatgpt-key": apiKey, "Content-Type": "application/json" }
             }
         );
 
