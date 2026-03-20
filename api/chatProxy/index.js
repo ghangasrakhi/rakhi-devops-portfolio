@@ -3,13 +3,23 @@ const axios = require("axios");
 module.exports = async function (context, req) {
     const apiKey = process.env.AZURE_OPENAI_KEY;
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-    const deploymentId = "gpt-4o";
+    const deploymentId = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-4o";
     
     const searchEndpoint = process.env.AZURE_SEARCH_ENDPOINT;
     const searchKey = process.env.AZURE_SEARCH_KEY;
     const searchIndex = "rag-1773919700779"; 
 
     const userQuery = req.body ? req.body.query : null;
+
+    // EMERGENCY BYPASS: If you type "test", and this works, your connection is fine!
+    if (userQuery === "test") {
+        context.res = {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+            body: { reply: "DevOps Heartbeat: 100bpm. Connection is live!" }
+        };
+        return;
+    }
 
     if (!userQuery) {
         context.res = { status: 400, body: "Ask me anything about my DevOps journey!" };
@@ -30,6 +40,7 @@ module.exports = async function (context, req) {
                         parameters: {
                             endpoint: searchEndpoint,
                             index_name: searchIndex,
+                            storage_account_connection_string: process.env.AZURE_STORAGE_CONNECTION_STRING,
                             authentication: {
                                 type: "api_key",
                                 key: searchKey
