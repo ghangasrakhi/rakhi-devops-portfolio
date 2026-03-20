@@ -18,7 +18,7 @@ module.exports = async function (context, req) {
 
     try {
         const response = await axios.post(
-            `${endpoint}/openai/deployments/${deploymentId}/chat/completions?api-version=2024-02-15-preview`,
+            `${endpoint}/openai/deployments/${deploymentId}/chat/completions?api-version=2024-02-01`,
             {
                 messages: [
                     { role: "system", content: "You are an AI assistant for Rakhi's DevOps portfolio. Answer questions based on her Medium blogs and experience." },
