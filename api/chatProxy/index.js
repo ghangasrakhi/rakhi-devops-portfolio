@@ -45,7 +45,7 @@ module.exports = async function (context, req) {
                                 type: "api_key",
                                 key: searchKey
                             },
-                            query_type: "vector_semantic", // Upgraded to Hybrid Search
+                            query_type: "vectorSemanticHybrid", // Upgraded to Hybrid Search
                             // semantic_configuration: "default",
                             semantic_configuration: "rag-1773919700779-semantic-configuration",
                             fields_mapping: {
