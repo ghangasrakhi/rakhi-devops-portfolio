@@ -1,73 +1,77 @@
 const Parser = require("rss-parser");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const axios = require("axios");
+const cheerio = require("cheerio");
 
-// 1. UPDATE: Tell the parser to specifically look for 'content:encoded'
-const parser = new Parser({
-    customFields: {
-        item: [['content:encoded', 'fullContent']]
-    }
-});
-
+const parser = new Parser();
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
 module.exports = async function (context, req) {
     const feedUrl = "https://medium.com/feed/@ghangas-rakhi";
 
     try {
-        // Fetch raw XML first
+        // 1. Fetch the RSS Feed to get the list of URLs
         const response = await axios.get(feedUrl);
         const feed = await parser.parseString(response.data);
 
-        // Initialize Blob Storage
         if (!connectionString) {
-            throw new Error("Storage Connection String is missing in Configuration.");
+            throw new Error("Storage Connection String is missing.");
         }
         const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
         const containerClient = blobServiceClient.getContainerClient("medium-blobs");
-        
         await containerClient.createIfNotExists();
 
         const posts = [];
 
         for (const item of feed.items) {
-            // Identify the richest content source (Full text > Snippet > empty)
-            const rawHtml = item.fullContent || item.content || "";
+            context.log(`Processing: ${item.title}`);
 
-            // Extract thumbnail from the richest content available
+            // 2. THE SECRET SAUCE: Fetch the actual webpage to get FULL text
+            let fullArticleText = "";
+            try {
+                const webPage = await axios.get(item.link);
+                const $ = cheerio.load(webPage.data);
+                
+                // Medium stores the main content in <section> tags
+                // This selector grabs all the actual text of your blog post
+                fullArticleText = $("section").text() || $("article").text() || item.contentSnippet;
+            } catch (e) {
+                context.log.error(`Failed to scrape ${item.link}, falling back to snippet.`);
+                fullArticleText = item.contentSnippet;
+            }
+
+            // 3. Clean the text for the AI
+            const cleanText = fullArticleText
+                .replace(/\s+/g, ' ')      // Remove extra spaces/newlines
+                .replace(/&nbsp;/g, ' ')
+                .trim();
+
+            // 4. Map the thumbnail (from the RSS content)
             let thumbnail = null;
-            const imgMatch = rawHtml.match(/<img[^>]+src="([^">]+)"/);
+            const imgMatch = item.content.match(/<img[^>]+src="([^">]+)"/);
             if (imgMatch) thumbnail = imgMatch[1];
 
-            // Prepare frontend display data
-            posts.push({
+            const postEntry = {
                 title: item.title,
                 link: item.link,
                 pubDate: item.pubDate,
-                description: item.contentSnippet, // Keeps UI cards clean
+                description: item.contentSnippet, 
                 thumbnail: thumbnail
-            });
+            };
+            posts.push(postEntry);
 
-            // Prepare Blob Sync for AI Search
+            // 5. UPLOAD TO BLOB (JSON structure remains the same!)
             const blobName = `${item.guid.split('/').pop()}.json`;
             const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-
-            // FIX: Clean the FULL text instead of just the snippet
-            const cleanText = rawHtml
-                .replace(/<[^>]*>?/gm, '') // Remove HTML tags
-                .replace(/&nbsp;/g, ' ')   // Remove common HTML entities
-                .replace(/\s+/g, ' ')      // Normalize whitespace
-                .trim();
 
             const blogData = JSON.stringify({
                 title: item.title,
                 link: item.link,
-                chunk: cleanText, // Now contains thousands of characters instead of hundreds
+                chunk: cleanText, // <--- NOW CONTAINS THE FULL SCRAPED TEXT
                 timestamp: item.pubDate,
                 source: "Medium"
             });
 
-            // Upload/Overwrite with full content
             await blockBlobClient.upload(blogData, Buffer.byteLength(blogData), {
                 blobHTTPHeaders: { blobContentType: "application/json" }
             });
@@ -83,10 +87,7 @@ module.exports = async function (context, req) {
         context.log.error("Sync Error:", error.message);
         context.res = {
             status: 500,
-            body: { 
-                error: "Failed to sync/fetch blogs", 
-                details: error.message
-            }
+            body: { error: "Failed to sync blogs", details: error.message }
         };
     }
 };
