@@ -46,11 +46,13 @@ module.exports = async function (context, req) {
                                 key: searchKey
                             },
                             query_type: "vector_semantic", // Upgraded to Hybrid Search
-                            semantic_configuration: "default",
+                            // semantic_configuration: "default",
+                            semantic_configuration: "rag-1773919700779-semantic-configuration",
                             fields_mapping: {
-                                content_columns: ["chunk"],
-                                title_field: "title",
-                                url_field: "link"
+                                content_columns: ["chunk"], 
+                                title_field: "title",       
+                                url_field: "chunk_id",      
+                                vector_fields: ["text_vector"]
                             },
                             // CRITICAL ADDITION:
                             embedding_dependency: {
