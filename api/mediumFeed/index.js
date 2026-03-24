@@ -26,24 +26,41 @@ module.exports = async function (context, req) {
         for (const item of feed.items) {
             context.log(`Processing: ${item.title}`);
 
-            // 2. THE SECRET SAUCE: Fetch the actual webpage to get FULL text
+            //  Fetch the actual webpage to get FULL text
+            // 2. Fetch the actual webpage with "Browser Headers"
             let fullArticleText = "";
             try {
-                const webPage = await axios.get(item.link);
+                const webPage = await axios.get(item.link, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1'
+                    }
+                });
+                
                 const $ = cheerio.load(webPage.data);
                 
-                // Medium stores the main content in <section> tags
-                // This selector grabs all the actual text of your blog post
-                fullArticleText = $("section").text() || $("article").text() || item.contentSnippet;
+                // Medium's modern structure often uses 'article' or specific classes
+                // We'll try a more aggressive selector to grab everything in the story
+                fullArticleText = $("article").text() || $("section").text() || $(".pw-post-body-paragraph").text();
+                
+                if (!fullArticleText || fullArticleText.length < 500) {
+                    // If scraping failed or was too short, use the content parser as backup
+                    fullArticleText = item.content || item.contentSnippet;
+                }
             } catch (e) {
-                context.log.error(`Failed to scrape ${item.link}, falling back to snippet.`);
+                context.log.error(`Failed to scrape ${item.link}: ${e.message}`);
                 fullArticleText = item.contentSnippet;
             }
 
             // 3. Clean the text for the AI
             const cleanText = fullArticleText
-                .replace(/\s+/g, ' ')      // Remove extra spaces/newlines
+                .replace(/\s+/g, ' ')      
                 .replace(/&nbsp;/g, ' ')
+                .replace(/Listen Share.*More/g, '') // Removes Medium UI clutter
                 .trim();
 
             // 4. Map the thumbnail (from the RSS content)
@@ -67,7 +84,7 @@ module.exports = async function (context, req) {
             const blogData = JSON.stringify({
                 title: item.title,
                 link: item.link,
-                chunk: cleanText, // <--- NOW CONTAINS THE FULL SCRAPED TEXT
+                chunk: cleanText, 
                 timestamp: item.pubDate,
                 source: "Medium"
             });
