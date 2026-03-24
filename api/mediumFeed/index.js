@@ -11,6 +11,7 @@ module.exports = async function (context, req) {
 
     try {
         const response = await axios.get(feedUrl);
+        context.log("RAW HTML LENGTH:", webPage.data.length);
         const feed = await parser.parseString(response.data);
 
         if (!connectionString) throw new Error("Storage Connection String missing.");
@@ -25,20 +26,19 @@ module.exports = async function (context, req) {
 
             let fullArticleText = "";
             try {
-                // 1. STEALTH HEADERS: Pretend to be a real Chrome browser
-                const webPage = await axios.get(item.link, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5',
-                        'Referer': 'https://google.com'
-                    }
-                });
-                
+                // This tells Medium "I'm a text-only viewer," which often bypasses the snippet wall
+                const scrapeUrl = `https://r.jina.ai/${item.link}`; 
+                const webPage = await axios.get(scrapeUrl);
                 const $ = cheerio.load(webPage.data);
+
+                // Jina or simple readers usually return clean text directly
+                fullArticleText = $("body").text();
                 
-                // 2. TARGETED SELECTORS: Medium wraps the main text in <p> inside <article> or <section>
-                // We combine all paragraph text to ensure we get the full story
+                // 2. If the above fails, we can try a more aggressive scrape of all paragraphs
+                if (!fullArticleText || fullArticleText.length < 300) {
+                    context.log(`Stealth scrape too short (${fullArticleText.length} chars). Trying aggressive paragraph scrape.`);
+                    fullArticleText = ""; // Reset before aggressive scrape
+                }
                 let paragraphs = [];
                 $('article p, section p').each((i, el) => {
                     paragraphs.push($(el).text());
