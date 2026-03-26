@@ -47,6 +47,7 @@ module.exports = async function (context, req) {
                             authentication: { type: "api_key", key: searchKey },
                             query_type: "vectorSemanticHybrid", 
                             semantic_configuration: "rag-1773919700779-semantic-configuration",
+                            minimum_coverage: 80,
                             fields_mapping: {
                                 content_columns: ["chunk"], 
                                 title_field: "title",       
