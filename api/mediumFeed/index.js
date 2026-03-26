@@ -1,6 +1,7 @@
 const Parser = require("rss-parser");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const axios = require("axios");
+const cheerio = require("cheerio"); // Add this to your package.json
 
 const parser = new Parser();
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -12,8 +13,6 @@ module.exports = async function (context, req) {
         const response = await axios.get(feedUrl);
         const feed = await parser.parseString(response.data);
 
-        if (!connectionString) throw new Error("Storage Connection String is missing.");
-        
         const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
         const containerClient = blobServiceClient.getContainerClient("medium-blobs");
         await containerClient.createIfNotExists();
@@ -24,24 +23,38 @@ module.exports = async function (context, req) {
             context.log(`Processing: ${item.title}`);
             const cleanLink = item.link.split('?')[0];
             
-            // BYPASS SNIPPETS: Use Jina to get the FULL text of your blog
             let fullArticleText = "";
             try {
-                const jinaUrl = `https://r.jina.ai/${cleanLink}`;
-                const jinaResponse = await axios.get(jinaUrl);
-                fullArticleText = jinaResponse.data;
+                // Mimic a real Chrome browser to bypass the 403 error
+                const webPage = await axios.get(cleanLink, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Referer': 'https://google.com'
+                    }
+                });
+
+                const $ = cheerio.load(webPage.data);
+                // Medium stores content in 'article' tags
+                fullArticleText = $("article").text() || $("section").text();
+                
+                // If scraping fails, fallback to the RSS content provided by Medium
+                if (!fullArticleText || fullArticleText.length < 200) {
+                    fullArticleText = item.contentSnippet || item.content;
+                }
             } catch (e) {
+                context.log.error(`Scrape failed: ${e.message}`);
                 fullArticleText = item.contentSnippet || item.content;
             }
 
-            // FIX DATE: Convert to ISO so Azure Indexer recognizes it
+            const cleanText = fullArticleText.replace(/\s+/g, ' ').trim();
             const isoTimestamp = new Date(item.pubDate).toISOString();
 
-            // Prepare Blob Content
             const blogData = JSON.stringify({
                 title: item.title,
                 link: cleanLink,
-                chunk: fullArticleText, 
+                chunk: cleanText, 
                 timestamp: isoTimestamp,
                 source: "Medium"
             });
@@ -56,15 +69,10 @@ module.exports = async function (context, req) {
             posts.push({ title: item.title, link: cleanLink, pubDate: isoTimestamp });
         }
 
-        context.res = {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-            body: posts
-        };
-
+        context.res = { body: posts };
     } catch (error) {
         context.log.error("Sync Error:", error.message);
-        context.res = { status: 500, body: { error: error.message } };
+        context.res = { status: 500, body: error.message };
     }
 };
 
