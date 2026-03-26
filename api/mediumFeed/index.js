@@ -24,51 +24,45 @@ module.exports = async function (context, req) {
         for (const item of feed.items) {
             context.log(`Processing: ${item.title}`);
 
-            // FIX 1: Use Jina to bypass the "Snippet Only" block
-            // This ensures your AI has the FULL text, not just a preview.
+            // STEP 1: Get the FULL text by using the Jina proxy
+            // This bypasses the "Continue reading" snippet issue
             const cleanLink = item.link.split('?')[0];
-            let fullArticleText = "";
+            const jinaUrl = `https://r.jina.ai/${cleanLink}`;
             
+            let fullArticleText = "";
             try {
-                const jinaUrl = `https://r.jina.ai/${cleanLink}`;
                 const jinaResponse = await axios.get(jinaUrl);
                 fullArticleText = jinaResponse.data;
             } catch (e) {
-                context.log.error(`Jina failed for ${item.title}: ${e.message}`);
+                context.log.error(`Full-text fetch failed for ${item.title}: ${e.message}`);
+                // Fallback to the snippet if Jina fails
                 fullArticleText = item.contentSnippet || item.content;
             }
 
             const cleanText = fullArticleText
-                .replace(/\s+/g, ' ')      
-                .replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ')
                 .trim();
 
-            let thumbnail = null;
-            const imgMatch = item.content.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch) thumbnail = imgMatch[1];
-
-            // FIX 2: Standardize the Date Format to ISO
-            // This is the ONLY way to fix the "Invalid Date" on your frontend.
+            // STEP 2: Fix the Date once and for all
+            // Converting to ISO string ensures Azure Indexer never sees "null"
             const isoTimestamp = new Date(item.pubDate).toISOString();
 
             const postEntry = {
                 title: item.title,
                 link: cleanLink,
-                pubDate: isoTimestamp, 
-                description: item.contentSnippet, 
-                thumbnail: thumbnail
+                pubDate: isoTimestamp
             };
             posts.push(postEntry);
 
+            // STEP 3: Upload the JSON to Blob
             const blobName = `${item.guid.split('/').pop()}.json`;
             const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-            // FIX 3: Ensure the JSON field matches your Azure Index "timestamp"
             const blogData = JSON.stringify({
                 title: item.title,
                 link: cleanLink,
                 chunk: cleanText, 
-                timestamp: isoTimestamp, // Matches your Index field name
+                timestamp: isoTimestamp, // This matches your Indexer field name
                 source: "Medium"
             });
 
@@ -91,7 +85,6 @@ module.exports = async function (context, req) {
         };
     }
 };
-
 
 // const Parser = require("rss-parser");
 // const { BlobServiceClient } = require("@azure/storage-blob");
