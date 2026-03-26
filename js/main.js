@@ -37,34 +37,6 @@ ScrollReveal().reveal(".tech",{delay:200,distance:"50px",origin:"bottom",interva
 ScrollReveal().reveal(".card",{delay:200,distance:"40px",origin:"bottom",interval:200});
 ScrollReveal().reveal(".blog-card",{delay:200,distance:"40px",origin:"bottom",interval:200});
 
-// MEDIUM BLOG INTEGRATION
-// const blogContainer = document.getElementById('blog-container');
-// const mediumRSS = 'https://medium.com/feed/ghangas-rakhi';
-// const rss2jsonURL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(mediumRSS)}&count=6`;
-
-// fetch(rss2jsonURL)
-//   .then(res => res.json())
-//   .then(data => {
-//     if(!data.items) throw new Error('No items returned');
-//     data.items.forEach(post => {
-//       const postCard = document.createElement('div');
-//       postCard.className = 'blog-card';
-//       postCard.innerHTML = `
-//         <img src="${post.thumbnail || 'img/blog-placeholder.jpg'}" alt="${post.title}">
-//         <div class="blog-content">
-//           <h3>${post.title}</h3>
-//           <p>${new Date(post.pubDate).toLocaleDateString()}</p>
-//           <a href="${post.link}" target="_blank">Read More</a>
-//         </div>
-//       `;
-//       blogContainer.appendChild(postCard);
-//     });
-//   })
-//   .catch(err => {
-//     console.error('Failed to fetch Medium posts', err);
-//     blogContainer.innerHTML = '<p style="color:#00ffd5;text-align:center;">Unable to load blogs at this time.</p>';
-//   });
-
 
 // Medium Blog Integration
 const blogContainer=document.getElementById('blog-container')
@@ -107,6 +79,7 @@ document.getElementById("chat-input").addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
 });
 
+
 async function sendMessage() {
     const input = document.getElementById("chat-input");
     const chatBody = document.getElementById("chat-body");
@@ -126,12 +99,17 @@ async function sendMessage() {
     chatBody.appendChild(botDiv);
 
     try {
-        // CALL YOUR AZURE FUNCTION PROXY
         const response = await fetch("/api/chatProxy", { 
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: text })
         });
+
+        // Check if the response is actually a success (200 OK)
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+        }
 
         const data = await response.json();
         
@@ -139,9 +117,49 @@ async function sendMessage() {
         botDiv.innerText = data.reply || "I'm having trouble reaching the cloud.";
 
     } catch (error) {
-        botDiv.innerText = "Connection lost. My DevOps heart is broken.";
-        console.error("Chat Error:", error);
+        // Updated error message to help you debug in real-time
+        botDiv.innerHTML = `<span style="color: #ff4d4d;">⚠️ Error: ${error.message}</span>`;
+        console.error("Chat Error Details:", error);
     }
 
     chatBody.scrollTop = chatBody.scrollHeight;
 }
+
+// async function sendMessage() {
+//     const input = document.getElementById("chat-input");
+//     const chatBody = document.getElementById("chat-body");
+//     const text = input.value.trim();
+
+//     if (text === "") return;
+
+//     // 1. Show User Message
+//     chatBody.innerHTML += `<div class="user">${text}</div>`;
+//     input.value = "";
+//     chatBody.scrollTop = chatBody.scrollHeight;
+
+//     // 2. Add a "Thinking..." bubble
+//     const botDiv = document.createElement("div");
+//     botDiv.className = "bot";
+//     botDiv.innerText = "Thinking...";
+//     chatBody.appendChild(botDiv);
+
+//     try {
+//         // CALL YOUR AZURE FUNCTION PROXY
+//         const response = await fetch("/api/chatProxy", { 
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({ query: text })
+//         });
+
+//         const data = await response.json();
+        
+//         // 3. Display AI Response
+//         botDiv.innerText = data.reply || "I'm having trouble reaching the cloud.";
+
+//     } catch (error) {
+//         botDiv.innerText = "Connection lost. My DevOps heart is broken.";
+//         console.error("Chat Error:", error);
+//     }
+
+//     chatBody.scrollTop = chatBody.scrollHeight;
+// }
