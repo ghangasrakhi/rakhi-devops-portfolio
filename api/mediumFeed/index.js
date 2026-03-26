@@ -69,7 +69,7 @@ module.exports = async function (context, req) {
                 title: item.title,
                 link: cleanLink,
                 chunk: cleanText, 
-                timestamp: new Date(item.pubDate).toISOString(),
+                timestamp: new Date(item.pubDate).toISOString(),  //add timestmap
                 source: "Medium",
                 lastSync: new Date().toISOString() // Helps you track if it's updating
             });
