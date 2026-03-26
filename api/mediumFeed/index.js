@@ -9,34 +9,37 @@ module.exports = async function (context, req) {
     const feedUrl = "https://medium.com/feed/@ghangas-rakhi";
 
     try {
-        const response = await fetch(feedUrl); // Using native fetch or axios
-        const xml = await response.text();
-        const feed = await parser.parseString(xml);
-
+        // 1. Get the feed
+        const feed = await parser.parseString(await (await fetch(feedUrl)).text());
+        
         const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
         const containerClient = blobServiceClient.getContainerClient("medium-blobs");
         await containerClient.createIfNotExists();
 
+        const posts = [];
+
         for (const item of feed.items) {
             context.log(`Processing: ${item.title}`);
 
-            // STEP 1: Extract full text from the RSS 'content' field
-            // This bypasses the 403 error because we aren't visiting the webpage
-            const $ = cheerio.load(item['content:encoded'] || item.content || "");
-            const fullText = $.text(); 
-
-            const cleanText = fullText
+            // 2. Extract FULL content from the RSS feed itself
+            // Medium puts the full article HTML in 'content:encoded'
+            const htmlContent = item['content:encoded'] || item.content || "";
+            const $ = cheerio.load(htmlContent);
+            
+            // Remove noise like figures, captions, or social links if desired
+            $('figure').remove(); 
+            
+            const cleanText = $.text()
                 .replace(/\s+/g, ' ')
-                .replace(/&nbsp;/g, ' ')
                 .trim();
 
-            // STEP 2: Ensure the Date is ISO string for the Indexer
             const isoTimestamp = new Date(item.pubDate).toISOString();
 
+            // 3. Create the JSON for Azure Search
             const blogData = JSON.stringify({
                 title: item.title,
                 link: item.link.split('?')[0],
-                chunk: cleanText, 
+                chunk: cleanText, // This will now be the ACTUAL article content
                 timestamp: isoTimestamp,
                 source: "Medium"
             });
@@ -47,12 +50,13 @@ module.exports = async function (context, req) {
             await blockBlobClient.upload(blogData, Buffer.byteLength(blogData), {
                 blobHTTPHeaders: { blobContentType: "application/json" }
             });
+
+            posts.push({ title: item.title, date: isoTimestamp });
         }
 
-        context.res = { status: 200, body: "Sync Complete" };
-
+        context.res = { body: posts };
     } catch (error) {
-        context.log.error("Sync Error:", error.message);
+        context.log.error(error.message);
         context.res = { status: 500, body: error.message };
     }
 };
