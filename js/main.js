@@ -76,7 +76,7 @@ fetch('/api/mediumFeed')
       const postCard=document.createElement('div')
       postCard.className='blog-card'
       postCard.innerHTML=`
-        <img src="${post.thumbnail||'img/blog-placeholder.jpg'}" alt="${post.title}">
+        <img src="${post.thumbnail||'img/default-blog.jpg'}" alt="${post.title}">
         <div class="blog-content">
           <h3>${post.title}</h3>
           <p>${new Date(post.pubDate).toLocaleDateString()}</p>
