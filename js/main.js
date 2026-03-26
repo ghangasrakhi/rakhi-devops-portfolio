@@ -114,7 +114,19 @@ async function sendMessage() {
         const data = await response.json();
         
         // 3. Display AI Response
-        botDiv.innerText = data.reply || "I'm having trouble reaching the cloud.";
+        const replyText = data.reply || "I'm having trouble reaching the cloud.";
+        botDiv.innerText = ""; // Clear the "Thinking..." text
+        let i = 0;
+
+        function typeWriter() {
+            if (i < replyText.length) {
+                botDiv.innerHTML += replyText.charAt(i);
+                i++;
+                chatBody.scrollTop = chatBody.scrollHeight;
+                setTimeout(typeWriter, 15); // Adjust speed here
+            }
+        }
+        typeWriter();
 
     } catch (error) {
         // Updated error message to help you debug in real-time

@@ -112,22 +112,20 @@
 </footer>
 
 
-<div id="chatbot">
-
-  <div id="chat-header">
-    DevOps Assistant 🤖
-  </div>
-
-  <div id="chat-body"></div>
-
-  <div id="chat-input-area">
-    <input type="text" id="chat-input" placeholder="Ask about Rakhi..." />
-    <button onclick="sendMessage()">Send</button>
-  </div>
-
-</div>
-
 <button id="chat-toggle">💬</button>
+
+<div id="chatbot">
+    <div class="chat-header">
+        <span>Rakhi's AI Assistant</span>
+        <span style="font-size: 10px; opacity: 0.7;">v1.0 (DevOps)</span>
+    </div>
+    <div id="chat-body">
+        <div class="bot">Hi! I'm Rakhi's AI. Ask me about her Cloud projects or latest blogs.</div>
+    </div>
+    <div class="chat-footer">
+        <input type="text" id="chat-input" placeholder="Type a message...">
+    </div>
+</div>
 
 <script src="js/main.js"></script>
 </body>
