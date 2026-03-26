@@ -79,6 +79,13 @@ document.getElementById("chat-input").addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
 });
 
+document.addEventListener('mousemove', (e) => {
+  const moveX = (e.clientX / window.innerWidth) * 100;
+  const moveY = (e.clientY / window.innerHeight) * 100;
+  
+  document.body.style.background = `radial-gradient(circle at ${moveX}% ${moveY}%, #0a192f 0%, #000 80%)`;
+});
+
 
 async function sendMessage() {
     const input = document.getElementById("chat-input");

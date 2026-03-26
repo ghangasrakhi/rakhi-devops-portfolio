@@ -205,3 +205,15 @@ canvas { position:fixed; top:0; left:0; z-index:-1; }
 #chat-toggle:hover {
     transform: scale(1.1);
 }
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border-radius: 10px;
+  box-shadow: 0 0 10px var(--neon-blue);
+}
