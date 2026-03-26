@@ -12,9 +12,8 @@ module.exports = async function (context, req) {
         const response = await axios.get(feedUrl);
         const feed = await parser.parseString(response.data);
 
-        if (!connectionString) {
-            throw new Error("Storage Connection String is missing.");
-        }
+        if (!connectionString) throw new Error("Storage Connection String is missing.");
+        
         const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
         const containerClient = blobServiceClient.getContainerClient("medium-blobs");
         await containerClient.createIfNotExists();
@@ -23,52 +22,38 @@ module.exports = async function (context, req) {
 
         for (const item of feed.items) {
             context.log(`Processing: ${item.title}`);
-
-            // STEP 1: Get the FULL text by using the Jina proxy
-            // This bypasses the "Continue reading" snippet issue
             const cleanLink = item.link.split('?')[0];
-            const jinaUrl = `https://r.jina.ai/${cleanLink}`;
             
+            // BYPASS SNIPPETS: Use Jina to get the FULL text of your blog
             let fullArticleText = "";
             try {
+                const jinaUrl = `https://r.jina.ai/${cleanLink}`;
                 const jinaResponse = await axios.get(jinaUrl);
                 fullArticleText = jinaResponse.data;
             } catch (e) {
-                context.log.error(`Full-text fetch failed for ${item.title}: ${e.message}`);
-                // Fallback to the snippet if Jina fails
                 fullArticleText = item.contentSnippet || item.content;
             }
 
-            const cleanText = fullArticleText
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            // STEP 2: Fix the Date once and for all
-            // Converting to ISO string ensures Azure Indexer never sees "null"
+            // FIX DATE: Convert to ISO so Azure Indexer recognizes it
             const isoTimestamp = new Date(item.pubDate).toISOString();
 
-            const postEntry = {
-                title: item.title,
-                link: cleanLink,
-                pubDate: isoTimestamp
-            };
-            posts.push(postEntry);
-
-            // STEP 3: Upload the JSON to Blob
-            const blobName = `${item.guid.split('/').pop()}.json`;
-            const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-
+            // Prepare Blob Content
             const blogData = JSON.stringify({
                 title: item.title,
                 link: cleanLink,
-                chunk: cleanText, 
-                timestamp: isoTimestamp, // This matches your Indexer field name
+                chunk: fullArticleText, 
+                timestamp: isoTimestamp,
                 source: "Medium"
             });
+
+            const blobName = `${item.guid.split('/').pop()}.json`;
+            const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
             await blockBlobClient.upload(blogData, Buffer.byteLength(blogData), {
                 blobHTTPHeaders: { blobContentType: "application/json" }
             });
+
+            posts.push({ title: item.title, link: cleanLink, pubDate: isoTimestamp });
         }
 
         context.res = {
@@ -79,10 +64,7 @@ module.exports = async function (context, req) {
 
     } catch (error) {
         context.log.error("Sync Error:", error.message);
-        context.res = {
-            status: 500,
-            body: { error: "Failed to sync blogs", details: error.message }
-        };
+        context.res = { status: 500, body: { error: error.message } };
     }
 };
 
